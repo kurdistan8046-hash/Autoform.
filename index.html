@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>فۆڕم دروستکەر</title>
+  <style>
+    body { font-family: Tahoma, Arial; padding: 20px; background: #f4f4f9; }
+    input, textarea, button { width: 100%; margin-bottom: 15px; padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; }
+    button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
+    button:hover { background: #0056b3; }
+  </style>
+</head>
+<body>
+  <h2>بەرنامەی ئۆتۆماتیکی کویز</h2>
+  
+  <label>لینکی فۆڕمە بەتاڵەکە:</label>
+  <input type="text" id="formUrl" placeholder="لینکی فۆڕمەکەی FormsApp لێرە دابنێ...">
+  
+  <label>پرسیارەکان:</label>
+  <textarea id="questions" rows="12" placeholder="پرسیار و وەڵامەکان لێرە بنووسە..."></textarea>
+  
+  <button onclick="sendData()" id="btn">ناردن بۆ فۆڕمەکە</button>
+  <p id="status"></p>
+
+  <script>
+    function sendData() {
+      document.getElementById('btn').innerText = "خەریکە دروستی دەکات، چاوەڕێ بە...";
+      
+      // ئەو لینکەی لە دێپلۆی گووگڵ دەستت کەوت، بیخە ناو ئەم دوو کەوانەیە لەبری نووسینە کوردییەکە
+      var url = "https://script.google.com/macros/s/AKfycbzq4QFg1xtjn-62nQR8W39939Ad6sCiD-E3l87Rn6qdyhPoEbyOPso4vClPW0AqS0TA/exec"; 
+      
+      var payload = {
+        formUrl: document.getElementById('formUrl').value,
+        text: document.getElementById('questions').value
+      };
+
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+      }).then(() => {
+        document.getElementById('status').innerText = "سەرکەوتوو بوو! بڕۆ ناو FormsApp سەیری بکە.";
+        document.getElementById('btn').innerText = "ناردن بۆ فۆڕمەکە";
+      }).catch(err => {
+        document.getElementById('status').innerText = "نێردرا، تکایە سەیری فۆڕمەکە بکە.";
+        document.getElementById('btn').innerText = "ناردن بۆ فۆڕمەکە";
+      });
+    }
+  </script>
+</body>
+</html>
