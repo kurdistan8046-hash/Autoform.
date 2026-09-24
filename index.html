@@ -1,51 +1,70 @@
 <!DOCTYPE html>
-<html lang="ku" dir="rtl">
+<html dir="rtl" lang="ckb">
 <head>
-  <meta charset="UTF-8">
-  <title>فۆڕم دروستکەر</title>
-  <style>
-    body { font-family: Tahoma, Arial; padding: 20px; background: #f4f4f9; }
-    input, textarea, button { width: 100%; margin-bottom: 15px; padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; }
-    button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; }
-    button:hover { background: #0056b3; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>دروستکەری فۆڕم</title>
+    <style>
+        body { font-family: Tahoma, Arial, sans-serif; padding: 20px; background: #f0f2f5; }
+        textarea { width: 100%; height: 300px; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; }
+        button { width: 100%; padding: 15px; background: #673ab7; color: white; border: none; border-radius: 8px; font-size: 18px; margin-top: 15px; cursor: pointer; }
+        button:hover { background: #512da8; }
+        #status { margin-top: 15px; font-weight: bold; text-align: center; }
+    </style>
 </head>
 <body>
-  <h2>بەرنامەی ئۆتۆماتیکی کویز</h2>
-  
-  <label>لینکی فۆڕمە بەتاڵەکە:</label>
-  <input type="text" id="formUrl" placeholder="لینکی فۆڕمەکەی FormsApp لێرە دابنێ...">
-  
-  <label>پرسیارەکان:</label>
-  <textarea id="questions" rows="12" placeholder="پرسیار و وەڵامەکان لێرە بنووسە..."></textarea>
-  
-  <button onclick="sendData()" id="btn">ناردن بۆ فۆڕمەکە</button>
-  <p id="status"></p>
+    <h2>دانانی پرسیارەکان بۆ ناو فۆڕم</h2>
+    <textarea id="quizData" placeholder="لێرەدا پرسیارەکانت دابنێ..."></textarea>
+    <button onclick="sendToForm()">ناردن بۆ فۆڕمەکە</button>
+    <div id="status"></div>
+    <script>
+        // تێبینی: ئەو لینکەی لە گوگڵ کۆپیت کرد لێرە دایبنێ لەناو جووتە کەوانەکەدا
+        const GOOGLE_SCRIPT_URL = "   https://script.google.com/macros/s/AKfycbzq4QFg1xtjn-62nQR8W39939Ad6sCiD-E3l87Rn6qdyhPoEbyOPso4vClPW0AqS0TA/exec  ";
 
-  <script>
-    function sendData() {
-      document.getElementById('btn').innerText = "خەریکە دروستی دەکات، چاوەڕێ بە...";
-      
-      // ئەو لینکەی لە دێپلۆی گووگڵ دەستت کەوت، بیخە ناو ئەم دوو کەوانەیە لەبری نووسینە کوردییەکە
-      var url = "https://script.google.com/macros/s/AKfycbzq4QFg1xtjn-62nQR8W39939Ad6sCiD-E3l87Rn6qdyhPoEbyOPso4vClPW0AqS0TA/exec"; 
-      
-      var payload = {
-        formUrl: document.getElementById('formUrl').value,
-        text: document.getElementById('questions').value
-      };
+        function sendToForm() {
+            document.getElementById('status').innerText = "چاوەڕێ بە، خەریکی پڕکردنەوەیە...";
+            let text = document.getElementById('quizData').value;
+            let lines = text.split('\n').filter(line => line.trim() !== '');
+            
+            let data = { formUrl: "", title: "", description: "", questions: [] };
+            let currentQuestion = null;
 
-      fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify(payload)
-      }).then(() => {
-        document.getElementById('status').innerText = "سەرکەوتوو بوو! بڕۆ ناو FormsApp سەیری بکە.";
-        document.getElementById('btn').innerText = "ناردن بۆ فۆڕمەکە";
-      }).catch(err => {
-        document.getElementById('status').innerText = "نێردرا، تکایە سەیری فۆڕمەکە بکە.";
-        document.getElementById('btn').innerText = "ناردن بۆ فۆڕمەکە";
-      });
-    }
-  </script>
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                
+                if (line.startsWith('URL:')) data.formUrl = line.replace('URL:', '').trim();
+                else if (line.startsWith('TITLE:')) data.title = line.replace('TITLE:', '').trim();
+                else if (line.startsWith('DESC:')) data.description = line.replace('DESC:', '').trim();
+                else if (line.match(/^\[SHORT-(\d+)\]/i)) {
+                    if (currentQuestion) data.questions.push(currentQuestion);
+                    let points = parseInt(line.match(/^\[SHORT-(\d+)\]/i)[1]);
+                    currentQuestion = { type: 'short', points: points, question: "", options: [] };
+                }
+                else if (line.match(/^\[MCQ-(\d+)\]/i)) {
+                    if (currentQuestion) data.questions.push(currentQuestion);
+                    let points = parseInt(line.match(/^\[MCQ-(\d+)\]/i)[1]);
+                    currentQuestion = { type: 'mcq', points: points, question: "", options: [] };
+                }
+                else if (currentQuestion) {
+                    if (currentQuestion.question === "") {
+                        currentQuestion.question = line;
+                    } else {
+                        currentQuestion.options.push(line);
+                    }
+                }
+            }
+            if (currentQuestion) data.questions.push(currentQuestion);
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                body: JSON.stringify(data)
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success) document.getElementById('status').innerText = "✅ فۆڕمەکە بە سەرکەوتوویی پڕکرایەوە!";
+                else document.getElementById('status').innerText = "❌ هەڵەیەک ڕوویدا: " + result.error;
+            }).catch(err => document.getElementById('status').innerText = "❌ کێشەی هێڵ: " + err);
+        }
+    </script>
 </body>
 </html>
